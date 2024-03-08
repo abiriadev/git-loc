@@ -1,39 +1,34 @@
 use git2::{DiffOptions, Repository, Sort, Tree};
 
-fn main() {
-	let repo = Repository::open(".").unwrap();
+fn main() -> anyhow::Result<()> {
+	let repo = Repository::open(".")?;
 
-	let mut revwalk = repo.revwalk().unwrap();
+	let mut revwalk = repo.revwalk()?;
 
-	revwalk
-		.set_sorting(Sort::REVERSE)
-		.unwrap();
-	revwalk.push_head().unwrap();
+	revwalk.set_sorting(Sort::REVERSE)?;
+	revwalk.push_head()?;
 
 	let mut last: Option<Tree> = None;
 
 	let mut loc: isize = 0;
 
-	for c in revwalk {
-		let c = c.unwrap();
-		let c = repo.find_commit(c).unwrap();
-		let t = c.tree().unwrap();
+	for oid in revwalk {
+		let t = repo.find_commit(oid?)?.tree()?;
 
-		let diff = repo
+		let s = repo
 			.diff_tree_to_tree(
 				last.as_ref(),
 				Some(&t),
 				Some(&mut DiffOptions::new()),
-			)
-			.unwrap();
-
-		let s = diff.stats().unwrap();
+			)?
+			.stats()?;
 
 		loc += s.insertions() as isize;
 		loc -= s.deletions() as isize;
 		println!("{}", loc);
-		// println!("{:?}", s);
 
 		last = Some(t);
 	}
+
+	Ok(())
 }
