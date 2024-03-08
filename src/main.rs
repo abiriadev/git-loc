@@ -9,6 +9,8 @@ fn main() {
 
 	let mut last: Option<Tree> = None;
 
+	let mut loc: isize = 0;
+
 	for c in revwalk {
 		let c = c.unwrap();
 		let c = repo.find_commit(c).unwrap();
@@ -22,9 +24,12 @@ fn main() {
 			)
 			.unwrap();
 
-		let s = diff.stats();
+		let s = diff.stats().unwrap();
 
-		println!("{:?}", s);
+		loc += s.insertions() as isize;
+		loc -= s.deletions() as isize;
+		println!("{}", loc);
+		// println!("{:?}", s);
 
 		last = Some(t);
 	}
