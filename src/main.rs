@@ -1,10 +1,13 @@
-use git2::{DiffOptions, Repository, Tree};
+use git2::{DiffOptions, Repository, Sort, Tree};
 
 fn main() {
 	let repo = Repository::open(".").unwrap();
 
 	let mut revwalk = repo.revwalk().unwrap();
 
+	revwalk
+		.set_sorting(Sort::REVERSE)
+		.unwrap();
 	revwalk.push_head().unwrap();
 
 	let mut last: Option<Tree> = None;
