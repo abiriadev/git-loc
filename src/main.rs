@@ -4,6 +4,7 @@ use clap::{ArgAction, Parser, ValueEnum};
 use git2::{DiffOptions, Repository, Sort, Tree};
 use rasciigraph::{plot, Config};
 use term_size::dimensions;
+use time::OffsetDateTime;
 
 type RawTime = i64;
 
@@ -51,6 +52,11 @@ impl<'a> Iterator for LocSeriesWindow<'a> {
 			Some(window)
 		}
 	}
+}
+
+struct SerializableLocByTime {
+	time: OffsetDateTime,
+	lines: isize,
 }
 
 struct LocSeries(Vec<LocByTime>);
@@ -116,6 +122,15 @@ impl LocSeries {
 	}
 
 	fn render_ndjson(self) -> String {
+		self.0
+			.into_iter()
+			.map(
+				|LocByTime { time, loc }| SerializableLocByTime {
+					time: OffsetDateTime::from_unix_timestamp(time).unwrap(),
+					lines: loc,
+				},
+			);
+
 		todo!()
 	}
 }
