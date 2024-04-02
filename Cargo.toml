@@ -1,5 +1,6 @@
 [package]
 name = "git-loc"
+description = "Count lines of code over time through Git history"
 version = "0.1.0"
 edition = "2021"
 
