@@ -3,6 +3,11 @@ use std::path::PathBuf;
 use clap::{ArgAction, Parser};
 use git2::{DiffOptions, Repository, Sort, Tree};
 
+struct Loc {
+	time: i64,
+	loc: isize,
+}
+
 #[derive(Parser)]
 #[command(author, version, about)]
 struct Options {
@@ -19,9 +24,7 @@ struct Options {
 	ignore_file: Option<PathBuf>,
 }
 
-fn main() -> anyhow::Result<()> {
-	let options = Options::parse();
-
+fn count_loc(options: Options) -> anyhow::Result<Vec<Loc>> {
 	let mut diff_option = options.ignore.into_iter().fold(
 		DiffOptions::new(),
 		|mut diff_option, pathspec| {
@@ -42,23 +45,39 @@ fn main() -> anyhow::Result<()> {
 	let mut last: Option<Tree> = None;
 
 	let mut loc: isize = 0;
+	let mut locs = Vec::new();
 
 	for oid in revwalk {
-		let t = repo.find_commit(oid?)?.tree()?;
+		let commit = repo.find_commit(oid?)?;
+		let time = commit.time().seconds();
+		let tree = commit.tree()?;
 
 		let s = repo
 			.diff_tree_to_tree(
 				last.as_ref(),
-				Some(&t),
+				Some(&tree),
 				Some(&mut diff_option),
 			)?
 			.stats()?;
 
 		loc += s.insertions() as isize;
 		loc -= s.deletions() as isize;
-		println!("{}", loc);
 
-		last = Some(t);
+		locs.push(Loc { time, loc });
+
+		last = Some(tree);
+	}
+
+	Ok(locs)
+}
+
+fn main() -> anyhow::Result<()> {
+	let options = Options::parse();
+
+	let locs = count_loc(options)?;
+
+	for loc in locs {
+		println!("{} {}", loc.time, loc.loc);
 	}
 
 	Ok(())
