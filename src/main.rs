@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use clap::{ArgAction, Parser, ValueEnum};
 use git2::{DiffOptions, Repository, Sort, Tree};
 use rasciigraph::{plot, Config};
+use serde::Serialize;
+use serde_json::to_string;
 use term_size::dimensions;
 use time::OffsetDateTime;
 
@@ -54,7 +56,9 @@ impl<'a> Iterator for LocSeriesWindow<'a> {
 	}
 }
 
+#[derive(Serialize)]
 struct SerializableLocByTime {
+	#[serde(with = "time::serde::rfc3339")]
 	time: OffsetDateTime,
 	lines: isize,
 }
@@ -124,14 +128,15 @@ impl LocSeries {
 	fn render_ndjson(self) -> String {
 		self.0
 			.into_iter()
-			.map(
-				|LocByTime { time, loc }| SerializableLocByTime {
+			.map(|LocByTime { time, loc }| {
+				to_string(&SerializableLocByTime {
 					time: OffsetDateTime::from_unix_timestamp(time).unwrap(),
 					lines: loc,
-				},
-			);
-
-		todo!()
+				})
+			})
+			.collect::<Result<Vec<_>, _>>()
+			.unwrap()
+			.join("\n")
 	}
 }
 
