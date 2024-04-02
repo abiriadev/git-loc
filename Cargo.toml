@@ -14,4 +14,4 @@ rasciigraph = "0.2.0"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.120"
 term_size = "0.3.2"
-time = "0.3.36"
+time = { version = "0.3.36", features = ["serde-well-known"] }
