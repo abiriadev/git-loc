@@ -1,6 +1,6 @@
-use std::{fmt::Debug, path::PathBuf};
+use std::path::PathBuf;
 
-use clap::{ArgAction, Parser};
+use clap::{ArgAction, Parser, ValueEnum};
 use git2::{DiffOptions, Repository, Sort, Tree};
 use rasciigraph::{plot, Config};
 use term_size::dimensions;
@@ -12,15 +12,14 @@ struct LocByTime {
 	loc: isize,
 }
 
-impl Debug for LocByTime {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{}", self.loc)
-	}
-}
-
+#[derive(Clone, Copy, Default, ValueEnum)]
 enum RenderMode {
+	/// Show ascii graph on terminal
+	#[default]
 	Chart,
-	Json,
+
+	/// Output each data point as ndjson
+	Ndjson,
 }
 
 struct LocSeriesWindow<'a> {
@@ -60,7 +59,7 @@ impl LocSeries {
 	fn render(self, mode: RenderMode) -> String {
 		match mode {
 			RenderMode::Chart => self.render_chart(),
-			RenderMode::Json => todo!(),
+			RenderMode::Ndjson => self.render_ndjson(),
 		}
 	}
 
@@ -115,6 +114,10 @@ impl LocSeries {
 				.with_caption("LOC over time".to_owned()),
 		)
 	}
+
+	fn render_ndjson(self) -> String {
+		todo!()
+	}
 }
 
 #[derive(Parser)]
@@ -131,10 +134,14 @@ struct Options {
 	/// Path to a file that lists filenames to ignore
 	#[arg(short = 'I', long, group = "i")]
 	ignore_file: Option<PathBuf>,
+
+	/// Output Format
+	#[arg(short, long, value_enum, default_value_t)]
+	format: RenderMode,
 }
 
-fn count_loc(options: Options) -> anyhow::Result<LocSeries> {
-	let mut diff_option = options.ignore.into_iter().fold(
+fn count_loc(options: &Options) -> anyhow::Result<LocSeries> {
+	let mut diff_option = options.ignore.iter().fold(
 		DiffOptions::new(),
 		|mut diff_option, pathspec| {
 			diff_option.pathspec(pathspec);
@@ -142,7 +149,7 @@ fn count_loc(options: Options) -> anyhow::Result<LocSeries> {
 		},
 	);
 
-	let repo = Repository::open(options.repository)?;
+	let repo = Repository::open(&options.repository)?;
 
 	let mut revwalk = repo.revwalk()?;
 
@@ -183,9 +190,9 @@ fn count_loc(options: Options) -> anyhow::Result<LocSeries> {
 fn main() -> anyhow::Result<()> {
 	let options = Options::parse();
 
-	let locs = count_loc(options)?;
+	let locs = count_loc(&options)?;
 
-	let rendered = locs.render(RenderMode::Chart);
+	let rendered = locs.render(options.format);
 
 	println!("{}", rendered);
 
