@@ -11,11 +11,11 @@ struct Options {
 	repository: String,
 
 	/// Filenames to ignore from statistics
-	#[arg(short, long, action = ArgAction::Append, group = "ignore")]
+	#[arg(short, long, action = ArgAction::Append, group = "i")]
 	ignore: Vec<String>,
 
 	/// Path to a file that lists filenames to ignore
-	#[arg(short = 'I', long, group = "ignore")]
+	#[arg(short = 'I', long, group = "i")]
 	ignore_file: Option<PathBuf>,
 }
 
