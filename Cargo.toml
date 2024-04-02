@@ -12,3 +12,4 @@ clap = { version = "4.5.8", features = ["derive"] }
 git2 = "0.18.2"
 rasciigraph = "0.2.0"
 term_size = "0.3.2"
+time = "0.3.36"
