@@ -4,7 +4,7 @@ use clap::{ArgAction, Parser};
 use git2::{DiffOptions, Repository, Sort, Tree};
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about)]
 struct Options {
 	/// Sets the path to the repository
 	#[arg(default_value_t = String::from("."))]
@@ -34,7 +34,9 @@ fn main() -> anyhow::Result<()> {
 
 	let mut revwalk = repo.revwalk()?;
 
+	revwalk.set_sorting(Sort::TIME)?;
 	revwalk.set_sorting(Sort::REVERSE)?;
+	revwalk.simplify_first_parent()?;
 	revwalk.push_head()?;
 
 	let mut last: Option<Tree> = None;
