@@ -10,3 +10,5 @@ edition = "2021"
 anyhow = "1.0.80"
 clap = { version = "4.5.8", features = ["derive"] }
 git2 = "0.18.2"
+rasciigraph = "0.2.0"
+term_size = "0.3.2"
