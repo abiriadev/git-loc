@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use clap::{ArgAction, Parser, ValueEnum};
 use git2::{DiffOptions, Repository, Sort, Tree};
 use rasciigraph::{plot, Config};
@@ -66,7 +67,7 @@ struct SerializableLocByTime {
 struct LocSeries(Vec<LocByTime>);
 
 impl LocSeries {
-	fn render(self, options: &Options) -> String {
+	fn render(self, options: &Options) -> anyhow::Result<String> {
 		match options.format {
 			RenderMode::Chart => self.render_chart(options),
 			RenderMode::Ndjson => self.render_ndjson(options),
@@ -82,20 +83,24 @@ impl LocSeries {
 		}
 	}
 
-	fn render_chart(self, options: &Options) -> String {
+	fn render_chart(self, options: &Options) -> anyhow::Result<String> {
 		let (
 			Some(&LocByTime { time: start, .. }),
 			Some(&LocByTime { time: end, .. }),
 		) = (self.0.first(), self.0.last())
 		else {
-			panic!()
+			return Err(anyhow!(
+				"At least one data point is required to render a chart."
+			));
 		};
 
 		let Some((t_w, t_h)) = dimensions() else {
-			panic!()
+			return Err(anyhow!(
+				"Unable to determine terminal size."
+			));
 		};
 
-		let slice_count = 10; // t_w as i64;
+		let slice_count = t_w as i64;
 		let full_duration = end - start;
 		let slice_duration = full_duration / slice_count;
 
@@ -116,17 +121,18 @@ impl LocSeries {
 			.map(|i| i as f64)
 			.collect::<Vec<_>>();
 
-		plot(
+		Ok(plot(
 			series,
 			Config::default()
 				.with_width(options.width.unwrap_or(t_w - 10) as u32)
 				.with_height(options.height.unwrap_or(t_h - 10) as u32)
 				.with_caption("LOC over time".to_owned()),
-		)
+		))
 	}
 
-	fn render_ndjson(self, _options: &Options) -> String {
-		self.0
+	fn render_ndjson(self, _options: &Options) -> anyhow::Result<String> {
+		Ok(self
+			.0
 			.into_iter()
 			.map(|LocByTime { time, loc }| {
 				to_string(&SerializableLocByTime {
@@ -134,9 +140,8 @@ impl LocSeries {
 					lines: loc,
 				})
 			})
-			.collect::<Result<Vec<_>, _>>()
-			.unwrap()
-			.join("\n")
+			.collect::<Result<Vec<_>, _>>()?
+			.join("\n"))
 	}
 }
 
@@ -220,7 +225,7 @@ fn main() -> anyhow::Result<()> {
 
 	let locs = count_loc(&options)?;
 
-	let rendered = locs.render(&options);
+	let rendered = locs.render(&options)?;
 
 	println!("{}", rendered);
 
