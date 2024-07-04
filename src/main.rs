@@ -66,10 +66,10 @@ struct SerializableLocByTime {
 struct LocSeries(Vec<LocByTime>);
 
 impl LocSeries {
-	fn render(self, mode: RenderMode) -> String {
-		match mode {
-			RenderMode::Chart => self.render_chart(),
-			RenderMode::Ndjson => self.render_ndjson(),
+	fn render(self, options: &Options) -> String {
+		match options.format {
+			RenderMode::Chart => self.render_chart(options),
+			RenderMode::Ndjson => self.render_ndjson(options),
 		}
 	}
 
@@ -82,7 +82,7 @@ impl LocSeries {
 		}
 	}
 
-	fn render_chart(self) -> String {
+	fn render_chart(self, options: &Options) -> String {
 		let (
 			Some(&LocByTime { time: start, .. }),
 			Some(&LocByTime { time: end, .. }),
@@ -119,13 +119,13 @@ impl LocSeries {
 		plot(
 			series,
 			Config::default()
-				.with_width(t_w as u32 - 10)
-				.with_height(t_h as u32 - 10)
+				.with_width(options.width.unwrap_or(t_w - 10) as u32)
+				.with_height(options.height.unwrap_or(t_h - 10) as u32)
 				.with_caption("LOC over time".to_owned()),
 		)
 	}
 
-	fn render_ndjson(self) -> String {
+	fn render_ndjson(self, _options: &Options) -> String {
 		self.0
 			.into_iter()
 			.map(|LocByTime { time, loc }| {
@@ -158,6 +158,14 @@ struct Options {
 	/// Output Format
 	#[arg(short, long, value_enum, default_value_t)]
 	format: RenderMode,
+
+	/// Width of the chart
+	#[arg(long)]
+	width: Option<usize>,
+
+	/// Height of the chart
+	#[arg(long)]
+	height: Option<usize>,
 }
 
 fn count_loc(options: &Options) -> anyhow::Result<LocSeries> {
@@ -212,7 +220,7 @@ fn main() -> anyhow::Result<()> {
 
 	let locs = count_loc(&options)?;
 
-	let rendered = locs.render(options.format);
+	let rendered = locs.render(&options);
 
 	println!("{}", rendered);
 
